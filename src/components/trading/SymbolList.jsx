@@ -2,7 +2,7 @@ import React, { useState, memo } from 'react';
 import { Box, Typography, TextField, InputAdornment, List, ListItemButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { useStore, selSymbol, selCategory } from '../../store';
-import { useAllTickersWS } from '../../hooks/useBybitWS';
+import { useAllTickersWS } from '../../hooks/useBinanceWS';
 
 const SYMBOLS = [
   'BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT',

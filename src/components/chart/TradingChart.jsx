@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { createChart, CrosshairMode } from 'lightweight-charts';
 import { Box, Button, Typography, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { useStore, selSymbol, selCategory, selTicker } from '../../store';
-import { useKlineWS } from '../../hooks/useBybitWS';
+import { useKlineWS } from '../../hooks/useBinanceWS';
 
 const INTERVALS = [
   { l: '1m', v: '1' }, { l: '5m', v: '5' }, { l: '15m', v: '15' },

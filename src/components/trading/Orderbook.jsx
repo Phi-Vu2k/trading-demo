@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useStore, selOrderbook, selSymbol, selCategory, selTicker } from '../../store';
-import { useOrderbookWS } from '../../hooks/useBybitWS';
+import { useOrderbookWS } from '../../hooks/useBinanceWS';
 
 const Orderbook = memo(function Orderbook() {
   const symbol   = useStore(selSymbol);

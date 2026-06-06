@@ -4,7 +4,7 @@ import {
   TableHead, TableRow, Button, Chip,
 } from '@mui/material';
 import { useStore, selPositions, selOpenOrders, selOrderHistory } from '../../store';
-import { cancelOrder } from '../../api/bybit';
+import { cancelOrder } from '../../api/binance';
 import { mkNotif } from '../../store';
 
 const hdr = { borderBottom: '1px solid #0e0e1e', color: '#4b5563', fontSize: 10, py: 0.6, px: 1, fontFamily: 'monospace' };

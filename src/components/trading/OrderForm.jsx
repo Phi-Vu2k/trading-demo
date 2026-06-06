@@ -6,7 +6,7 @@ import {
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useStore, selSymbol, selCategory, selOrderForm, selWallet, mkNotif } from '../../store';
 import { useShallow } from 'zustand/react/shallow';
-import { placeOrder, setLeverage as apiSetLeverage } from '../../api/bybit';
+import { placeOrder, setLeverage as apiSetLeverage } from '../../api/binance';
 
 const PCT = [25, 50, 75, 100];
 

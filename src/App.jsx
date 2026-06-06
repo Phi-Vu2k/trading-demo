@@ -9,8 +9,8 @@ import PositionsPanel from './components/trading/PositionsPanel';
 import Portfolio from './components/portfolio/Portfolio';
 import NotificationsPage from './components/notifications/NotificationsPage';
 import { useStore, selActiveTab } from './store';
-import { useTickerWS, usePrivateData } from './hooks/useBybitWS';
-import { getOrderHistory } from './api/bybit';
+import { useTickerWS, usePrivateData } from './hooks/useBinanceWS';
+import { getOrderHistory } from './api/binance';
 
 const theme = createTheme({
   palette: {
