@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Box, Typography, Grid, Chip } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -6,12 +6,29 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { useStore, selWallet } from '../../store';
 import { useShallow } from 'zustand/react/shallow';
+import { useAllTickersWS, useTickerWSForSymbols } from '../../hooks/useBinanceWS';
 
 const COLORS = ['#f7a600','#00d98b','#60a5fa','#a78bfa','#f472b6','#34d399','#fb923c','#e879f9'];
 
 const Portfolio = memo(function Portfolio() {
   const { coins, total, pnl } = useStore(useShallow(selWallet));
   const ticker = useStore(s => s.tickers);
+  const category = useStore(s => s.activeCategory);
+
+  // Keep the default watchlist tickers live
+  useAllTickersWS(category);
+
+  // Also subscribe tickers for coins the user actually holds that are not
+  // in the default watchlist (so their USD value updates in real time).
+  const heldSymbols = useMemo(() => {
+    const set = new Set();
+    coins.forEach(c => {
+      if (!c.coin || c.coin === 'USDT' || c.coin === 'USDC') return;
+      set.add(`${c.coin}USDT`);
+    });
+    return [...set];
+  }, [coins]);
+  useTickerWSForSymbols(heldSymbols, category);
 
   // Filter coins with balance
   const active = coins.filter(c => parseFloat(c.walletBalance || c.equity || 0) > 0.0001);

@@ -8,6 +8,7 @@ import SymbolList from './components/trading/SymbolList';
 import PositionsPanel from './components/trading/PositionsPanel';
 import Portfolio from './components/portfolio/Portfolio';
 import NotificationsPage from './components/notifications/NotificationsPage';
+import NotifSnackbar from './components/notifications/NotifSnackbar';
 import { useStore, selActiveTab } from './store';
 import { useTickerWS, usePrivateData } from './hooks/useBinanceWS';
 import { getOrderHistory } from './api/binance';
@@ -105,6 +106,7 @@ export default function App() {
             <NotificationsPage />
           </Box>
         )}
+        <NotifSnackbar />
       </Box>
     </ThemeProvider>
   );

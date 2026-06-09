@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store';
 import { subOrderbook, subTicker, subKline, subPrivate } from '../api/wsManager';
 import { getKline, getWalletBalance, getPositions, getOpenOrders } from '../api/binance';
@@ -52,6 +52,25 @@ export function useAllTickersWS(category) {
   }, [category, setTicker]);
 }
 
+// Subscribe tickers for a custom list of symbols (e.g. coins the user actually holds).
+// De-dupes against any previously subscribed topics via the WS manager itself.
+export function useTickerWSForSymbols(symbols, category) {
+  const setTicker = useStore(s => s.setTicker);
+  const key = useMemo(
+    () => (Array.isArray(symbols) ? [...new Set(symbols)].sort().join('|') : ''),
+    [symbols]
+  );
+
+  useEffect(() => {
+    if (!key) return;
+    const list = key.split('|').filter(Boolean);
+    const unsubs = list.map(sym =>
+      subTicker(sym, category, data => setTicker(sym, data))
+    );
+    return () => unsubs.forEach(fn => fn());
+  }, [key, category, setTicker]);
+}
+
 export function useKlineWS(symbol, interval, category, onUpdate) {
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
@@ -102,6 +121,9 @@ export function usePrivateData() {
   const setWallet = useStore(s => s.setWallet);
   const setPositions = useStore(s => s.setPositions);
   const setOpenOrders = useStore(s => s.setOpenOrders);
+  const mergeSpotBalances = useStore(s => s.mergeSpotBalances);
+  const mergeFuturesBalances = useStore(s => s.mergeFuturesBalances);
+  const setCoinUpnl = useStore(s => s.setCoinUpnl);
   const pushNotif = useStore(s => s.pushNotif);
 
   useEffect(() => {
@@ -128,14 +150,28 @@ export function usePrivateData() {
   }, [setWallet, setPositions, setOpenOrders]);
 
   useEffect(() => {
-    const unWallet = subPrivate('wallet', () => {
-      getWalletBalance().then(data => applyWallet(data, setWallet)).catch(() => {});
+    // Wallet updates from WS (spot + futures) - no REST roundtrip needed
+    const unWallet = subPrivate('wallet', (payload) => {
+      if (!payload) return;
+      if (payload.kind === 'spotBalances') {
+        mergeSpotBalances(payload.coins || []);
+      } else if (payload.kind === 'futuresBalances') {
+        mergeFuturesBalances(payload.balances || []);
+      }
     });
 
-    const unPos = subPrivate('position', () => {
-      getPositions('linear')
-        .then(pos => setPositions(pos?.result?.list?.filter(p => parseFloat(p.size) > 0) || []))
-        .catch(() => {});
+    // Position updates from WS futures ACCOUNT_UPDATE stream
+    const unPos = subPrivate('position', (positions) => {
+      if (Array.isArray(positions)) {
+        // Update positions list
+        setPositions(positions.filter(p => parseFloat(p.size) > 0));
+        // Update unrealisedPnl on each affected coin (quote asset stripped from symbol)
+        positions.forEach(p => {
+          if (!p.symbol) return;
+          const coin = p.symbol.replace(/USDT$|USDC$|BUSD$/, '');
+          if (p.unrealisedPnl != null) setCoinUpnl(coin, p.unrealisedPnl);
+        });
+      }
     });
 
     const unOrder = subPrivate('order', data => {
@@ -194,7 +230,7 @@ export function usePrivateData() {
       unOrder();
       unExec();
     };
-  }, [setWallet, setPositions, pushNotif]);
+  }, [setWallet, setPositions, pushNotif, mergeSpotBalances, mergeFuturesBalances, setCoinUpnl]);
 }
 
 function applyWallet(data, setWallet) {

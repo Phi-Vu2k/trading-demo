@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Box, Typography, Button, Chip, IconButton, Divider } from '@mui/material';
+import { Box, Typography, Button, Chip, IconButton, Divider, Tooltip } from '@mui/material';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -7,6 +7,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
+import CloseIcon from '@mui/icons-material/Close';
 import { useStore, selNotifs } from '../../store';
 
 const iconMap = {
@@ -78,17 +79,20 @@ export default NotificationsPage;
 const NotifCard = memo(function NotifCard({ notif }) {
   const color  = colorMap[notif.type] || '#9ca3af';
   const isNew  = !notif.read;
+  const removeNotif = useStore(s => s.removeNotif);
 
   return (
     <Box sx={{
+      position: 'relative',
       display: 'flex', gap: 1.5, p: 1.5,
       bgcolor: isNew ? `${color}08` : '#0a0a18',
       border: `1px solid ${isNew ? `${color}25` : '#0e0e1e'}`,
       borderRadius: 1.5,
       transition: 'all 0.2s',
+      '&:hover .notif-delete-btn': { opacity: 1 },
     }}>
       <Box sx={{ mt: 0.2, flexShrink: 0 }}>{iconMap[notif.type] || iconMap.info}</Box>
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1, pr: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb' }}>{notif.title}</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -98,6 +102,22 @@ const NotifCard = memo(function NotifCard({ notif }) {
             </Typography>
           </Box>
         </Box>
+        <Tooltip title="Delete notification" arrow>
+          <IconButton
+            size="small"
+            className="notif-delete-btn"
+            onClick={(e) => { e.stopPropagation(); removeNotif(notif.id); }}
+            sx={{
+              position: 'absolute', top: 4, right: 4,
+              opacity: 0, p: 0.3,
+              color: '#4b5563',
+              transition: 'opacity 0.15s, color 0.15s, background-color 0.15s',
+              '&:hover': { color: '#f6465d', bgcolor: '#f6465d15' },
+            }}
+          >
+            <CloseIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
         <Typography sx={{ fontSize: 11, color: '#9ca3af', mt: 0.2 }}>{notif.msg}</Typography>
 
         {/* Extra order details */}

@@ -72,6 +72,48 @@ function normalizeExecution(data = {}) {
   };
 }
 
+function normalizeSpotBalances(B) {
+  return (B || [])
+    .map(b => {
+      const free = parseFloat(b.f || 0);
+      const locked = parseFloat(b.l || 0);
+      const total = free + locked;
+      return {
+        coin: b.a,
+        equity: String(total),
+        walletBalance: String(total),
+        availableToWithdraw: String(free),
+        unrealisedPnl: '0',
+      };
+    })
+    .filter(c => parseFloat(c.equity) > 0);
+}
+
+function normalizeFuturesUpdate(a) {
+  const balances = (a?.B || []).map(b => ({
+    coin: b.a,
+    walletBalance: b.wb || '0',
+    availableToWithdraw: b.cw || b.wb || '0',
+    unrealisedPnl: '0',
+  }));
+  const positions = (a?.P || []).map(p => {
+    const amount = parseFloat(p.pa || 0);
+    return {
+      symbol: p.s,
+      side: amount >= 0 ? 'Buy' : 'Sell',
+      size: String(Math.abs(amount)),
+      avgPrice: p.ep,
+      markPrice: p.mp,
+      liqPrice: '',
+      unrealisedPnl: p.up,
+      curRealisedPnl: p.cr || '0',
+      takeProfit: '',
+      stopLoss: '',
+    };
+  });
+  return { balances, positions };
+}
+
 class WSManager {
   constructor() {
     this._sockets = {};
@@ -246,12 +288,21 @@ class WSManager {
   }
 
   _handlePrivateMessage(msg) {
-    if (msg.e === 'outboundAccountPosition' || msg.e === 'balanceUpdate' || msg.e === 'ACCOUNT_UPDATE') {
-      this._handlers.wallet?.forEach(fn => fn([msg], { type: 'delta' }));
+    // Spot wallet updates
+    if (msg.e === 'outboundAccountPosition' || msg.e === 'balanceUpdate') {
+      const coins = normalizeSpotBalances(msg.B);
+      this._handlers.wallet?.forEach(fn => fn({ kind: 'spotBalances', coins }, { type: 'delta' }));
     }
 
+    // Futures wallet + position updates
     if (msg.e === 'ACCOUNT_UPDATE') {
-      this._handlers.position?.forEach(fn => fn([msg], { type: 'delta' }));
+      const { balances, positions } = normalizeFuturesUpdate(msg.a || {});
+      if (balances.length) {
+        this._handlers.wallet?.forEach(fn => fn({ kind: 'futuresBalances', balances }, { type: 'delta' }));
+      }
+      if (positions.length) {
+        this._handlers.position?.forEach(fn => fn(positions, { type: 'delta' }));
+      }
     }
 
     if (msg.e === 'executionReport' || msg.e === 'ORDER_TRADE_UPDATE') {

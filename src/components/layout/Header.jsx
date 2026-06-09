@@ -17,7 +17,6 @@ const Header = memo(function Header() {
   const activeTab   = useStore(selActiveTab);
   const setActiveTab = useStore(s => s.setActiveTab);
   const unread      = useStore(selUnread);
-  const total       = useStore(s => s.totalEquity);
   const pnl         = useStore(s => s.totalPnl);
   const symbol      = useStore(selSymbol);
   const category    = useStore(selCategory);
@@ -96,27 +95,19 @@ const Header = memo(function Header() {
           ))}
         </Box>
 
-        {/* Balance */}
-        {total > 0 && (
-          <Tooltip title={`Unrealised PnL: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`} arrow>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, cursor: 'default' }}>
-              <AccountBalanceWalletIcon sx={{ fontSize: 14, color: '#4b5563' }} />
-              <Box>
-                <Typography sx={{ fontSize: 9, color: '#4b5563', lineHeight: 1 }}>Total Equity</Typography>
-                <Typography sx={{ fontSize: 13, color: '#e5e7eb', fontFamily: 'monospace', lineHeight: 1.2 }}>
-                  ${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </Typography>
-              </Box>
-              {pnl !== 0 && (
-                <Typography sx={{ fontSize: 10, color: pnl >= 0 ? '#00d98b' : '#f6465d', fontFamily: 'monospace' }}>
-                  {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
-                </Typography>
-              )}
-            </Box>
-          </Tooltip>
-        )}
+        <Tooltip title="Unrealised PnL (perpetual futures)" arrow>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, cursor: 'default',
+            px: 1, py: 0.4, borderRadius: 1, bgcolor: pnl >= 0 ? '#00d98b10' : '#f6465d10',
+            border: `1px solid ${pnl >= 0 ? '#00d98b30' : '#f6465d30'}` }}>
+            <Typography sx={{ fontSize: 9, color: pnl >= 0 ? '#00d98b' : '#f6465d',
+              fontWeight: 600, letterSpacing: 0.5 }}>PnL</Typography>
+            <Typography sx={{ fontSize: 12, color: pnl >= 0 ? '#00d98b' : '#f6465d',
+              fontFamily: 'monospace', fontWeight: 700 }}>
+              {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+            </Typography>
+          </Box>
+        </Tooltip>
 
-        {/* Status dot */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#00d98b',
             animation: 'pulse 2s infinite',
@@ -126,7 +117,7 @@ const Header = memo(function Header() {
               '100%': { boxShadow: '0 0 0 0 transparent' },
             },
           }} />
-          <Typography sx={{ fontSize: 10, color: '#00d98b', fontWeight: 600 }}>WS LIVE</Typography>
+          <Typography sx={{ fontSize: 10, color: '#00d98b', fontWeight: 600 }}>LIVE DATA</Typography>
         </Box>
       </Toolbar>
     </AppBar>

@@ -51,6 +51,42 @@ export const useStore = create(
     totalPnl:     0,
     setWallet: (coins, total, pnl) => set({ walletCoins: coins, totalEquity: total, totalPnl: pnl }),
 
+    // Replace spot coin entries with WS-pushed balances (merge with existing futures entries)
+    mergeSpotBalances: (coins) =>
+      set(s => {
+        const map = new Map(s.walletCoins.map(c => [c.coin, c]));
+        (coins || []).forEach(c => map.set(c.coin, { ...(map.get(c.coin) || {}), ...c, _src: 'spot' }));
+        return { walletCoins: [...map.values()] };
+      }),
+
+    // Merge futures wallet balances into existing entries (preserve spot if newer)
+    mergeFuturesBalances: (coins) =>
+      set(s => {
+        const map = new Map(s.walletCoins.map(c => [c.coin, c]));
+        (coins || []).forEach(c => {
+          const existing = map.get(c.coin) || { coin: c.coin };
+          const wb = parseFloat(c.walletBalance || 0);
+          const av = parseFloat(c.availableToWithdraw || 0);
+          map.set(c.coin, {
+            ...existing,
+            coin: c.coin,
+            walletBalance: String(wb),
+            availableToWithdraw: String(av),
+            equity: String((wb + parseFloat(existing.unrealisedPnl || 0)).toFixed(8)),
+            _src: existing._src === 'spot' ? 'both' : 'futures',
+          });
+        });
+        return { walletCoins: [...map.values()] };
+      }),
+
+    // Update unrealised PnL of a coin (from futures positions stream)
+    setCoinUpnl: (coin, upnl) =>
+      set(s => ({
+        walletCoins: s.walletCoins.map(c =>
+          c.coin === coin ? { ...c, unrealisedPnl: String(upnl) } : c
+        ),
+      })),
+
     positions:    [],
     setPositions: (p) => set({ positions: p }),
 
@@ -94,6 +130,15 @@ export const useStore = create(
         unreadCount: 0,
       })),
     clearNotifs: () => set({ notifications: [], unreadCount: 0 }),
+    removeNotif: (id) =>
+      set(s => {
+        const target = s.notifications.find(n => n.id === id);
+        const wasUnread = target && !target.read;
+        return {
+          notifications: s.notifications.filter(n => n.id !== id),
+          unreadCount: wasUnread ? Math.max(0, s.unreadCount - 1) : s.unreadCount,
+        };
+      }),
   }))
 );
 
