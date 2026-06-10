@@ -11,10 +11,6 @@ export function mkNotif(type, title, msg, extra = {}) {
 export const useStore = create(
   subscribeWithSelector((set, get) => ({
 
-    // ── Navigation ──────────────────────────────────────────────────────────
-    activeTab: 'trade',   // 'trade' | 'portfolio' | 'notifications' | 'history'
-    setActiveTab: (t) => set({ activeTab: t }),
-
     // ── Market ──────────────────────────────────────────────────────────────
     activeSymbol:   'BTCUSDT',
     activeCategory: 'spot',        // 'spot' | 'linear'
@@ -124,11 +120,6 @@ export const useStore = create(
         notifications: [n, ...s.notifications].slice(0, 200),
         unreadCount:   s.unreadCount + 1,
       })),
-    markAllRead: () =>
-      set(s => ({
-        notifications: s.notifications.map(n => ({ ...n, read: true })),
-        unreadCount: 0,
-      })),
     clearNotifs: () => set({ notifications: [], unreadCount: 0 }),
     removeNotif: (id) =>
       set(s => {
@@ -158,4 +149,3 @@ export const selOrderForm    = s => ({
 });
 export const selNotifs       = s => s.notifications;
 export const selUnread       = s => s.unreadCount;
-export const selActiveTab    = s => s.activeTab;

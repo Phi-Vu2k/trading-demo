@@ -1,14 +1,13 @@
 import React, { memo } from 'react';
-import { Box, Typography, Button, Chip, IconButton, Divider, Tooltip } from '@mui/material';
+import { Box, Typography, Button, Chip } from '@mui/material';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import DoneAllIcon from '@mui/icons-material/DoneAll';
-import CloseIcon from '@mui/icons-material/Close';
-import { useStore, selNotifs } from '../../store';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useStore, selNotifs } from '../store';
 
 const iconMap = {
   success: <CheckCircleOutlineIcon sx={{ fontSize: 18, color: '#00d98b' }} />,
@@ -20,14 +19,12 @@ const colorMap = { success: '#00d98b', error: '#f6465d', warning: '#f7a600', inf
 
 const NotificationsPage = memo(function NotificationsPage() {
   const notifs     = useStore(selNotifs);
-  const markAllRead = useStore(s => s.markAllRead);
   const clearNotifs = useStore(s => s.clearNotifs);
 
   const grouped = groupByDay(notifs);
 
   return (
     <Box sx={{ p: 2, height: '100%', overflowY: 'auto', bgcolor: '#06060f' }}>
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <NotificationsNoneIcon sx={{ color: '#f7a600' }} />
@@ -35,12 +32,7 @@ const NotificationsPage = memo(function NotificationsPage() {
           <Chip label={`${notifs.filter(n => !n.read).length} new`} size="small"
             sx={{ bgcolor: '#f7a60020', color: '#f7a600', fontSize: 10, height: 18 }} />
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button startIcon={<DoneAllIcon />} size="small" onClick={markAllRead}
-            sx={{ color: '#6b7280', fontSize: 11, textTransform: 'none',
-              '&:hover': { color: '#9ca3af', bgcolor: '#ffffff08' } }}>
-            Mark all read
-          </Button>
+        <Box>
           <Button startIcon={<DeleteSweepIcon />} size="small" onClick={clearNotifs}
             sx={{ color: '#6b7280', fontSize: 11, textTransform: 'none',
               '&:hover': { color: '#f6465d', bgcolor: '#f6465d10' } }}>
@@ -83,44 +75,39 @@ const NotifCard = memo(function NotifCard({ notif }) {
 
   return (
     <Box sx={{
-      position: 'relative',
-      display: 'flex', gap: 1.5, p: 1.5,
+      display: 'flex', gap: 1, p: 1.5,
       bgcolor: isNew ? `${color}08` : '#0a0a18',
       border: `1px solid ${isNew ? `${color}25` : '#0e0e1e'}`,
       borderRadius: 1.5,
       transition: 'all 0.2s',
-      '&:hover .notif-delete-btn': { opacity: 1 },
     }}>
+      <Button
+        size="small"
+        onClick={(e) => { e.stopPropagation(); removeNotif(notif.id); }}
+        sx={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.1,
+          minWidth: 32, width: 32, p: 0.3, borderRadius: 1,
+          color: '#4b5563', alignSelf: 'center',
+          bgcolor: 'transparent',
+          '&:hover': { color: '#f6465d', bgcolor: '#f6465d10' },
+        }}
+      >
+        <DeleteIcon sx={{ fontSize: 14 }} />
+        <Typography sx={{ fontSize: 7, lineHeight: 1 }}>Delete</Typography>
+      </Button>
       <Box sx={{ mt: 0.2, flexShrink: 0 }}>{iconMap[notif.type] || iconMap.info}</Box>
-      <Box sx={{ flex: 1, pr: 3 }}>
+      <Box sx={{ flex: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb' }}>{notif.title}</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             {isNew && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: color }} />}
             <Typography sx={{ fontSize: 9, color: '#4b5563', ml: 0.5 }}>
               {new Date(notif.ts).toLocaleTimeString()}
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Delete notification" arrow>
-          <IconButton
-            size="small"
-            className="notif-delete-btn"
-            onClick={(e) => { e.stopPropagation(); removeNotif(notif.id); }}
-            sx={{
-              position: 'absolute', top: 4, right: 4,
-              opacity: 0, p: 0.3,
-              color: '#4b5563',
-              transition: 'opacity 0.15s, color 0.15s, background-color 0.15s',
-              '&:hover': { color: '#f6465d', bgcolor: '#f6465d15' },
-            }}
-          >
-            <CloseIcon sx={{ fontSize: 14 }} />
-          </IconButton>
-        </Tooltip>
         <Typography sx={{ fontSize: 11, color: '#9ca3af', mt: 0.2 }}>{notif.msg}</Typography>
 
-        {/* Extra order details */}
         {notif.order && (
           <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
             {[
@@ -136,7 +123,6 @@ const NotifCard = memo(function NotifCard({ notif }) {
           </Box>
         )}
 
-        {/* Execution details */}
         {notif.execution && (
           <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
             {[

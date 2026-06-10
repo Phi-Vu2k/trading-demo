@@ -1,21 +1,19 @@
 import React, { memo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Box, Chip, Button, Badge, Tooltip } from '@mui/material';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import HistoryIcon from '@mui/icons-material/History';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import { useStore, selActiveTab, selUnread, selSymbol, selCategory, selTicker } from '../../store';
+import { useStore, selUnread, selSymbol, selCategory, selTicker } from '../../store';
 
-const TABS = [
-  { id: 'trade',         label: 'Trade',         icon: <ShowChartIcon sx={{ fontSize: 15 }} /> },
-  { id: 'portfolio',     label: 'Portfolio',      icon: <AccountBalanceWalletIcon sx={{ fontSize: 15 }} /> },
-  { id: 'notifications', label: 'Notifications',  icon: <NotificationsNoneIcon sx={{ fontSize: 15 }} /> },
+const PAGES = [
+  { path: '/',             label: 'Trade',         icon: <ShowChartIcon sx={{ fontSize: 15 }} /> },
+  { path: '/portfolio',    label: 'Portfolio',      icon: <AccountBalanceWalletIcon sx={{ fontSize: 15 }} /> },
+  { path: '/notifications',label: 'Notifications',  icon: <NotificationsNoneIcon sx={{ fontSize: 15 }} /> },
 ];
 
 const Header = memo(function Header() {
-  const activeTab   = useStore(selActiveTab);
-  const setActiveTab = useStore(s => s.setActiveTab);
+  const location   = useLocation();
   const unread      = useStore(selUnread);
   const pnl         = useStore(s => s.totalPnl);
   const symbol      = useStore(selSymbol);
@@ -73,26 +71,28 @@ const Header = memo(function Header() {
           </Box>
         )}
 
-        {/* Nav tabs */}
+        {/* Nav pages */}
         <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 0.5 }}>
-          {TABS.map(t => (
-            <Button key={t.id}
-              startIcon={t.id === 'notifications'
-                ? <Badge badgeContent={unread} max={99}
-                    sx={{ '& .MuiBadge-badge': { bgcolor: '#f6465d', color: '#fff', fontSize: 8, minWidth: 14, height: 14, top: -2, right: -2 } }}>
-                    {t.icon}
-                  </Badge>
-                : t.icon}
-              onClick={() => setActiveTab(t.id)}
-              sx={{ px: 1.5, py: 0.4, fontSize: 11, textTransform: 'none', borderRadius: 1,
-                color:   activeTab === t.id ? '#f7a600' : '#6b7280',
-                bgcolor: activeTab === t.id ? '#f7a60012' : 'transparent',
-                borderBottom: activeTab === t.id ? '1.5px solid #f7a600' : '1.5px solid transparent',
-                '&:hover': { bgcolor: '#ffffff08', color: '#9ca3af' },
-              }}>
-              {t.label}
-            </Button>
-          ))}
+          {PAGES.map(t => {
+            const active = location.pathname === t.path;
+            return (
+              <Button key={t.path} component={Link} to={t.path}
+                startIcon={t.path === '/notifications'
+                  ? <Badge badgeContent={unread} max={99}
+                      sx={{ '& .MuiBadge-badge': { bgcolor: '#f6465d', color: '#fff', fontSize: 8, minWidth: 14, height: 14, top: -2, right: -2 } }}>
+                      {t.icon}
+                    </Badge>
+                  : t.icon}
+                sx={{ px: 1.5, py: 0.4, fontSize: 11, textTransform: 'none', borderRadius: 1,
+                  color:   active ? '#f7a600' : '#6b7280',
+                  bgcolor: active ? '#f7a60012' : 'transparent',
+                  borderBottom: active ? '1.5px solid #f7a600' : '1.5px solid transparent',
+                  '&:hover': { bgcolor: '#ffffff08', color: '#9ca3af' },
+                }}>
+                {t.label}
+              </Button>
+            );
+          })}
         </Box>
 
         <Tooltip title="Unrealised PnL (perpetual futures)" arrow>
