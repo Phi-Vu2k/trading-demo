@@ -8,6 +8,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useStore, selNotifs } from '../store';
+import { formatAmount } from '../utils/format';
 
 const iconMap = {
   success: <CheckCircleOutlineIcon sx={{ fontSize: 18, color: '#00d98b' }} />,
@@ -126,7 +127,7 @@ const NotifCard = memo(function NotifCard({ notif }) {
         {notif.execution && (
           <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
             {[
-              { l: 'Fee',  v: parseFloat(notif.execution.execFee || 0).toFixed(6) + ' ' + (notif.execution.feeCurrency || '') },
+              { l: 'Fee',  v: formatAmount(notif.execution.execFee || 0) + ' ' + (notif.execution.feeCurrency || '') },
               { l: 'Type', v: notif.execution.execType },
             ].map(({ l, v }) => (
               <Box key={l} sx={{ display: 'flex', gap: 0.3 }}>

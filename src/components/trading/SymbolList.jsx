@@ -3,12 +3,8 @@ import { Box, Typography, TextField, InputAdornment, List, ListItemButton } from
 import SearchIcon from '@mui/icons-material/Search';
 import { useStore, selSymbol, selCategory } from '../../store';
 import { useAllTickersWS } from '../../hooks/useBinanceWS';
-
-const SYMBOLS = [
-  'BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT',
-  'DOGEUSDT','ADAUSDT','AVAXUSDT','DOTUSDT','LINKUSDT',
-  'MATICUSDT','UNIUSDT','LTCUSDT','ATOMUSDT','NEARUSDT',
-];
+import { WATCH_SYMBOLS } from '../../constants/symbols';
+import { formatPercent } from '../../utils/format';
 
 const SymbolList = memo(function SymbolList() {
   const symbol   = useStore(selSymbol);
@@ -18,7 +14,7 @@ const SymbolList = memo(function SymbolList() {
 
   useAllTickersWS(category);
 
-  const filtered = SYMBOLS.filter(s => s.toLowerCase().includes(search.toLowerCase()));
+  const filtered = WATCH_SYMBOLS.filter(s => s.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <Box sx={{ bgcolor: '#06060f', height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -79,7 +75,7 @@ const SymbolRow = memo(function SymbolRow({ sym, active, onSelect }) {
         <Typography sx={{ fontSize: 10, color: isUp ? '#00d98b' : '#f6465d',
           bgcolor: isUp ? '#00d98b12' : '#f6465d12',
           px: 0.5, borderRadius: 0.5 }}>
-          {isUp ? '+' : ''}{pct.toFixed(2)}%
+          {formatPercent(pct)}
         </Typography>
       )}
     </ListItemButton>

@@ -5,6 +5,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import { useStore, selUnread, selSymbol, selCategory, selTicker } from '../../store';
+import { formatPercent, formatPrice, formatSigned } from '../../utils/format';
 
 const PAGES = [
   { path: '/',             label: 'Trade',         icon: <ShowChartIcon sx={{ fontSize: 15 }} /> },
@@ -62,9 +63,9 @@ const Header = memo(function Header() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Typography sx={{ color: '#e5e7eb', fontWeight: 700, fontSize: 14 }}>{symbol}</Typography>
             <Typography sx={{ color: isUp ? '#00d98b' : '#f6465d', fontSize: 13, fontFamily: 'monospace' }}>
-              {parseFloat(ticker.lastPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {formatPrice(ticker.lastPrice)}
             </Typography>
-            <Chip label={`${isUp ? '+' : ''}${change.toFixed(2)}%`} size="small"
+            <Chip label={formatPercent(change)} size="small"
               sx={{ bgcolor: isUp ? '#00d98b18' : '#f6465d18',
                 color: isUp ? '#00d98b' : '#f6465d',
                 fontSize: 10, height: 18 }} />
@@ -103,7 +104,7 @@ const Header = memo(function Header() {
               fontWeight: 600, letterSpacing: 0.5 }}>PnL</Typography>
             <Typography sx={{ fontSize: 12, color: pnl >= 0 ? '#00d98b' : '#f6465d',
               fontFamily: 'monospace', fontWeight: 700 }}>
-              {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+              {formatSigned(pnl, 2, '$')}
             </Typography>
           </Box>
         </Tooltip>

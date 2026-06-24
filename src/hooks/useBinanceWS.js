@@ -3,6 +3,8 @@ import { useStore } from '../store';
 import { subOrderbook, subTicker, subKline, subPrivate } from '../api/wsManager';
 import { getKline, getWalletBalance, getPositions, getOpenOrders } from '../api/binance';
 import { mkNotif } from '../store';
+import { WATCH_SYMBOLS } from '../constants/symbols';
+import { formatPrice } from '../utils/format';
 
 export function useOrderbookWS(symbol, category) {
   const setOrderbook = useStore(s => s.setOrderbook);
@@ -34,12 +36,6 @@ export function useTickerWS(symbol, category) {
     return unsub;
   }, [symbol, category, setTicker]);
 }
-
-const WATCH_SYMBOLS = [
-  'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT',
-  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-  'MATICUSDT', 'UNIUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT',
-];
 
 export function useAllTickersWS(category) {
   const setTicker = useStore(s => s.setTicker);
@@ -177,17 +173,7 @@ export function usePrivateData() {
     const unOrder = subPrivate('order', data => {
       if (!Array.isArray(data)) return;
       data.forEach(o => {
-        useStore.setState(s => {
-          let list = [...s.openOrders];
-          const idx = list.findIndex(x => x.orderId === o.orderId);
-          if (o.orderStatus === 'New' || o.orderStatus === 'PartiallyFilled') {
-            if (idx >= 0) list[idx] = o;
-            else list = [o, ...list];
-          } else if (idx >= 0) {
-            list.splice(idx, 1);
-          }
-          return { openOrders: list };
-        });
+        applyOrderUpdate(o);
 
         const color = o.side === 'Buy' ? 'Buy' : 'Sell';
         let type = 'info';
@@ -215,10 +201,11 @@ export function usePrivateData() {
     const unExec = subPrivate('execution', data => {
       if (!Array.isArray(data)) return;
       data.forEach(e => {
+        applyExecutionUpdate(e);
         pushNotif(mkNotif(
           'success',
           'Trade Executed',
-          `${e.side} ${e.execQty} ${e.symbol} @ ${parseFloat(e.execPrice).toFixed(2)}`,
+          `${e.side} ${e.execQty} ${e.symbol} @ ${formatPrice(e.execPrice)}`,
           { execution: e }
         ));
       });
@@ -240,4 +227,78 @@ function applyWallet(data, setWallet) {
   const total = parseFloat(list.totalEquity || 0);
   const pnl = parseFloat(list.totalPerpUPL || 0);
   setWallet(coins, total, pnl);
+}
+
+function isActiveOrder(status) {
+  return status === 'New' || status === 'PartiallyFilled';
+}
+
+function isTerminalOrder(status) {
+  return status === 'Filled' || status === 'Cancelled' || status === 'Rejected';
+}
+
+function upsertOrder(list, order) {
+  const idx = list.findIndex(x => x.orderId === order.orderId);
+  if (idx < 0) return [order, ...list];
+  const next = [...list];
+  next[idx] = { ...next[idx], ...order };
+  return next;
+}
+
+function applyOrderUpdate(order) {
+  if (!order?.orderId) return;
+
+  useStore.setState(s => {
+    let openOrders = [...s.openOrders];
+    let orderHistory = [...s.orderHistory];
+    const openIdx = openOrders.findIndex(x => x.orderId === order.orderId);
+
+    if (isActiveOrder(order.orderStatus)) {
+      if (openIdx >= 0) openOrders[openIdx] = { ...openOrders[openIdx], ...order };
+      else openOrders = [order, ...openOrders];
+    } else {
+      openOrders = openOrders.filter(x => x.orderId !== order.orderId);
+    }
+
+    if (isTerminalOrder(order.orderStatus) || orderHistory.some(x => x.orderId === order.orderId)) {
+      orderHistory = upsertOrder(orderHistory, order)
+        .sort((a, b) => parseInt(b.createdTime || 0) - parseInt(a.createdTime || 0))
+        .slice(0, 100);
+    }
+
+    return { openOrders, orderHistory };
+  });
+}
+
+function applyExecutionUpdate(execution) {
+  if (!execution?.orderId) return;
+  if (execution.orderStatus && execution.orderStatus !== 'Filled') return;
+
+  useStore.setState(s => {
+    const existing =
+      s.openOrders.find(x => x.orderId === execution.orderId) ||
+      s.orderHistory.find(x => x.orderId === execution.orderId);
+
+    const filledOrder = {
+      ...(existing || {}),
+      symbol: execution.symbol || existing?.symbol,
+      orderId: execution.orderId,
+      side: execution.side || existing?.side,
+      price: existing?.price || execution.execPrice,
+      avgPrice: execution.execPrice || existing?.avgPrice,
+      qty: existing?.qty || execution.qty || execution.execQty,
+      cumExecQty: execution.cumExecQty || execution.execQty || existing?.cumExecQty,
+      orderStatus: 'Filled',
+      createdTime: existing?.createdTime || String(Date.now()),
+      takeProfit: existing?.takeProfit || '',
+      stopLoss: existing?.stopLoss || '',
+    };
+
+    return {
+      openOrders: s.openOrders.filter(x => x.orderId !== execution.orderId),
+      orderHistory: upsertOrder(s.orderHistory, filledOrder)
+        .sort((a, b) => parseInt(b.createdTime || 0) - parseInt(a.createdTime || 0))
+        .slice(0, 100),
+    };
+  });
 }

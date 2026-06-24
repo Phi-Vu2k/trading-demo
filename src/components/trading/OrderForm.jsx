@@ -6,7 +6,9 @@ import {
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useStore, selSymbol, selCategory, selOrderForm, selWallet, mkNotif } from '../../store';
 import { useShallow } from 'zustand/react/shallow';
-import { placeOrder, setLeverage as apiSetLeverage, getWalletBalance, getOpenOrders, getOrderHistory } from '../../api/binance';
+import { placeOrder, setLeverage as apiSetLeverage } from '../../api/binance';
+import { refreshAccountData } from '../../api/accountData';
+import { formatAmount, formatFixed, formatPrice } from '../../utils/format';
 
 const PCT = [25, 50, 75, 100];
 
@@ -70,7 +72,7 @@ const OrderForm = memo(function OrderForm() {
 
   const entryP  = parseFloat(form.price) || lastPrice;
   const estCost = parseFloat(form.qty || 0) * entryP;
-  const margin  = isFuture ? (estCost / form.leverage).toFixed(2) : null;
+  const margin  = isFuture ? formatFixed(estCost / form.leverage) : null;
 
   function handlePct(pct) {
     const avail = form.side === 'Buy' ? availUSDT : availBase;
@@ -112,21 +114,7 @@ const OrderForm = memo(function OrderForm() {
 
         const refreshData = async () => {
           try {
-            const [bal, spotOrders, linearOrders, histRes] = await Promise.all([
-              getWalletBalance(),
-              getOpenOrders('spot'),
-              getOpenOrders('linear'),
-              getOrderHistory(category === 'linear' ? 'linear' : 'spot', 100),
-            ]);
-            const list = bal?.result?.list?.[0];
-            if (list) {
-              setWallet(list.coin || [], parseFloat(list.totalEquity || 0), parseFloat(list.totalPerpUPL || 0));
-            }
-            setOpenOrders([
-              ...(spotOrders?.result?.list || []),
-              ...(linearOrders?.result?.list || []),
-            ]);
-            setOrderHistory(histRes?.result?.list || []);
+            await refreshAccountData(category, { setWallet, setOpenOrders, setOrderHistory });
           } catch (e) {
             console.error('Failed to refresh data:', e);
           }
@@ -254,8 +242,8 @@ const OrderForm = memo(function OrderForm() {
 
       {/* Summary */}
       <Box sx={{ bgcolor: '#0a0a18', borderRadius: 1, p: 1, display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-        <SumRow label="Available" value={`${form.side === 'Buy' ? availUSDT.toFixed(2) + ' USDT' : availBase.toFixed(6) + ' ' + base}`} />
-        {estCost > 0 && <SumRow label="Est. Cost"   value={`≈ ${estCost.toFixed(2)} USDT`} />}
+        <SumRow label="Available" value={`${form.side === 'Buy' ? formatFixed(availUSDT) + ' USDT' : formatAmount(availBase) + ' ' + base}`} />
+        {estCost > 0 && <SumRow label="Est. Cost"   value={`≈ ${formatFixed(estCost)} USDT`} />}
         {margin      && <SumRow label="Margin"      value={`≈ ${margin} USDT`} />}
         {liqPrice    && (
           <SumRow label={
@@ -265,7 +253,7 @@ const OrderForm = memo(function OrderForm() {
                 <InfoOutlinedIcon sx={{ fontSize: 11, color: '#4b5563', cursor: 'help' }} />
               </Tooltip>
             </Box>
-          } value={liqPrice.toFixed(2)} valueColor="#f6465d" />
+          } value={formatPrice(liqPrice)} valueColor="#f6465d" />
         )}
       </Box>
 

@@ -1,4 +1,11 @@
 import { startFuturesListenKey, keepAliveFuturesListenKey, createSpotWsAuthParams } from './binance';
+import {
+  normalizeExecution,
+  normalizeFuturesUpdate,
+  normalizeSpotBalances,
+  normalizeTicker,
+  normalizeWsOrder,
+} from './normalizers';
 
 const WS_PUBLIC_SPOT = 'wss://demo-stream.binance.com/stream';
 const WS_PUBLIC_LINEAR = 'wss://demo-fstream.binance.com/stream';
@@ -20,99 +27,6 @@ const intervalMap = {
   W: '1w',
   M: '1M',
 };
-
-function normalizeTicker(data = {}) {
-  return {
-    symbol: data.s,
-    lastPrice: data.c,
-    price24hPcnt: String((parseFloat(data.P || 0) || 0) / 100),
-    highPrice24h: data.h,
-    lowPrice24h: data.l,
-    volume24h: data.v,
-    turnover24h: data.q,
-  };
-}
-
-function normalizeOrderStatus(status) {
-  const map = {
-    NEW: 'New',
-    PARTIALLY_FILLED: 'PartiallyFilled',
-    FILLED: 'Filled',
-    CANCELED: 'Cancelled',
-    REJECTED: 'Rejected',
-    EXPIRED: 'Cancelled',
-  };
-  return map[status] || status;
-}
-
-function normalizeOrder(data = {}) {
-  return {
-    symbol: data.s,
-    orderId: String(data.i),
-    side: data.S === 'BUY' ? 'Buy' : 'Sell',
-    orderType: data.o ? data.o.charAt(0) + data.o.slice(1).toLowerCase() : '',
-    price: data.p,
-    qty: data.q,
-    cumExecQty: data.z,
-    avgPrice: data.L && data.L !== '0' ? data.L : data.p,
-    orderStatus: normalizeOrderStatus(data.X),
-    createdTime: String(data.O || data.E || Date.now()),
-    takeProfit: '',
-    stopLoss: '',
-  };
-}
-
-function normalizeExecution(data = {}) {
-  return {
-    symbol: data.s,
-    side: data.S === 'BUY' ? 'Buy' : 'Sell',
-    execQty: data.l,
-    execPrice: data.L,
-    orderId: String(data.i),
-  };
-}
-
-function normalizeSpotBalances(B) {
-  return (B || [])
-    .map(b => {
-      const free = parseFloat(b.f || 0);
-      const locked = parseFloat(b.l || 0);
-      const total = free + locked;
-      return {
-        coin: b.a,
-        equity: String(total),
-        walletBalance: String(total),
-        availableToWithdraw: String(free),
-        unrealisedPnl: '0',
-      };
-    })
-    .filter(c => parseFloat(c.equity) > 0);
-}
-
-function normalizeFuturesUpdate(a) {
-  const balances = (a?.B || []).map(b => ({
-    coin: b.a,
-    walletBalance: b.wb || '0',
-    availableToWithdraw: b.cw || b.wb || '0',
-    unrealisedPnl: '0',
-  }));
-  const positions = (a?.P || []).map(p => {
-    const amount = parseFloat(p.pa || 0);
-    return {
-      symbol: p.s,
-      side: amount >= 0 ? 'Buy' : 'Sell',
-      size: String(Math.abs(amount)),
-      avgPrice: p.ep,
-      markPrice: p.mp,
-      liqPrice: '',
-      unrealisedPnl: p.up,
-      curRealisedPnl: p.cr || '0',
-      takeProfit: '',
-      stopLoss: '',
-    };
-  });
-  return { balances, positions };
-}
 
 class WSManager {
   constructor() {
@@ -293,7 +207,7 @@ class WSManager {
             }
             return;
           }
-          this._handlePrivateMessage(msg);
+          this._handlePrivateMessage(msg.event || msg);
         } catch {}
       };
 
@@ -351,6 +265,9 @@ class WSManager {
   }
 
   _handlePrivateMessage(msg) {
+    msg = msg?.event || msg;
+    if (!msg?.e) return;
+
     // Spot wallet updates
     if (msg.e === 'outboundAccountPosition' || msg.e === 'balanceUpdate') {
       const coins = normalizeSpotBalances(msg.B);
@@ -370,7 +287,7 @@ class WSManager {
 
     if (msg.e === 'executionReport' || msg.e === 'ORDER_TRADE_UPDATE') {
       const raw = msg.e === 'ORDER_TRADE_UPDATE' ? msg.o : msg;
-      const order = normalizeOrder(raw);
+      const order = normalizeWsOrder(raw);
       this._handlers.order?.forEach(fn => fn([order], { type: 'delta' }));
       if (parseFloat(raw.l || 0) > 0) {
         this._handlers.execution?.forEach(fn => fn([normalizeExecution(raw)], { type: 'delta' }));

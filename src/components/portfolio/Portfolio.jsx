@@ -7,6 +7,7 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { useStore, selWallet } from '../../store';
 import { useShallow } from 'zustand/react/shallow';
 import { useAllTickersWS, useTickerWSForSymbols } from '../../hooks/useBinanceWS';
+import { formatAmount, formatCurrency, formatFixed, formatSigned } from '../../utils/format';
 
 const COLORS = ['#f7a600','#00d98b','#60a5fa','#a78bfa','#f472b6','#34d399','#fb923c','#e879f9'];
 
@@ -70,7 +71,7 @@ const Portfolio = memo(function Portfolio() {
           <StatCard
             icon={<AccountBalanceWalletIcon sx={{ color: '#f7a600', fontSize: 20 }} />}
             label="Total Equity"
-            value={`$${totalUSD.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(totalUSD)}
             sub="Unified account"
             color="#f7a600"
           />
@@ -81,7 +82,7 @@ const Portfolio = memo(function Portfolio() {
               ? <TrendingUpIcon sx={{ color: '#00d98b', fontSize: 20 }} />
               : <TrendingDownIcon sx={{ color: '#f6465d', fontSize: 20 }} />}
             label="Unrealised PnL"
-            value={`${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`}
+            value={formatSigned(pnl, 2, '$')}
             sub="Perpetual futures"
             color={isPnlUp ? '#00d98b' : '#f6465d'}
           />
@@ -112,7 +113,7 @@ const Portfolio = memo(function Portfolio() {
                     </Pie>
                     <Tooltip
                       contentStyle={{ bgcolor: '#0a0a18', border: '1px solid #1a1a2e', borderRadius: 8, fontSize: 11 }}
-                      formatter={(v, n, p) => [`$${v.toFixed(2)} (${p.payload.pct}%)`, p.payload.name]}
+                      formatter={(v, n, p) => [`${formatCurrency(v)} (${p.payload.pct}%)`, p.payload.name]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -141,7 +142,7 @@ const Portfolio = memo(function Portfolio() {
                   <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} />
                   <Tooltip
                     contentStyle={{ bgcolor: '#0a0a18', border: '1px solid #1a1a2e', borderRadius: 8, fontSize: 11 }}
-                    formatter={v => [`$${v.toFixed(2)}`, 'USD Value']}
+                    formatter={v => [formatCurrency(v), 'USD Value']}
                   />
                   <Bar dataKey="usd" radius={[3, 3, 0, 0]}>
                     {barData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -178,20 +179,20 @@ const Portfolio = memo(function Portfolio() {
                         <Typography sx={{ fontSize: 12, color: '#e5e7eb', fontWeight: 600 }}>{c.coin}</Typography>
                       </Box>
                       <Typography sx={{ flex: 1, fontSize: 11, color: '#9ca3af', fontFamily: 'monospace', alignSelf: 'center' }}>
-                        {parseFloat(c.walletBalance || c.equity || 0).toFixed(6)}
+                        {formatAmount(c.walletBalance || c.equity)}
                       </Typography>
                       <Typography sx={{ flex: 1, fontSize: 11, color: '#9ca3af', fontFamily: 'monospace', alignSelf: 'center' }}>
-                        {parseFloat(c.availableToWithdraw || 0).toFixed(6)}
+                        {formatAmount(c.availableToWithdraw)}
                       </Typography>
                       <Typography sx={{ flex: 1, fontSize: 11, color: '#e5e7eb', fontFamily: 'monospace', alignSelf: 'center' }}>
-                        ${c.usdVal.toFixed(2)}
+                        {formatCurrency(c.usdVal)}
                       </Typography>
                       <Box sx={{ flex: 1, alignSelf: 'center' }}>
                         <Chip label={`${totalUSD > 0 ? ((c.usdVal / totalUSD) * 100).toFixed(1) : 0}%`}
                           size="small" sx={{ bgcolor: '#f7a60018', color: '#f7a600', fontSize: 9, height: 16 }} />
                       </Box>
                       <Typography sx={{ flex: 1, fontSize: 11, color: upnl >= 0 ? '#00d98b' : '#f6465d', fontFamily: 'monospace', alignSelf: 'center' }}>
-                        {upnl !== 0 ? `${upnl >= 0 ? '+' : ''}${upnl.toFixed(4)}` : '—'}
+                        {upnl !== 0 ? formatSigned(upnl, 4) : '—'}
                       </Typography>
                     </Box>
                   );

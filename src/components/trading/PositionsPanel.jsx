@@ -4,8 +4,10 @@ import {
   TableHead, TableRow, Button, Chip,
 } from '@mui/material';
 import { useStore, selPositions, selOpenOrders, selOrderHistory } from '../../store';
-import { cancelOrder, getWalletBalance, getOpenOrders, getOrderHistory } from '../../api/binance';
+import { cancelOrder } from '../../api/binance';
+import { refreshAccountData } from '../../api/accountData';
 import { mkNotif } from '../../store';
+import { formatFixed, formatSigned } from '../../utils/format';
 
 const hdr = { borderBottom: '1px solid #0e0e1e', color: '#4b5563', fontSize: 10, py: 0.6, px: 1, fontFamily: 'monospace' };
 const cel = { borderBottom: '1px solid #0e0e1e05', color: '#9ca3af', fontSize: 11, py: 0.5, px: 1, fontFamily: 'monospace' };
@@ -28,21 +30,7 @@ const PositionsPanel = memo(function PositionsPanel() {
         pushNotif(mkNotif('warning', '⚪ Order Cancelled', `Order ${orderId.slice(0, 8)}... cancelled`));
         const refreshData = async () => {
           try {
-            const [bal, spotOrders, linearOrders, histRes] = await Promise.all([
-              getWalletBalance(),
-              getOpenOrders('spot'),
-              getOpenOrders('linear'),
-              getOrderHistory(category === 'linear' ? 'linear' : 'spot', 100),
-            ]);
-            const list = bal?.result?.list?.[0];
-            if (list) {
-              setWallet(list.coin || [], parseFloat(list.totalEquity || 0), parseFloat(list.totalPerpUPL || 0));
-            }
-            setOpenOrders([
-              ...(spotOrders?.result?.list || []),
-              ...(linearOrders?.result?.list || []),
-            ]);
-            setOrderHistory(histRes?.result?.list || []);
+            await refreshAccountData(category, { setWallet, setOpenOrders, setOrderHistory });
           } catch (e) {}
         };
         refreshData();
@@ -98,14 +86,14 @@ const PositionsTable = memo(function PositionsTable({ rows }) {
                 <SideChip side={p.side} />
               </TableCell>
               <TableCell sx={cel}>{p.size}</TableCell>
-              <TableCell sx={cel}>{parseFloat(p.avgPrice || 0).toFixed(2)}</TableCell>
-              <TableCell sx={cel}>{parseFloat(p.markPrice || 0).toFixed(2)}</TableCell>
-              <TableCell sx={{ ...cel, color: '#f6465d' }}>{parseFloat(p.liqPrice || 0).toFixed(2)}</TableCell>
+              <TableCell sx={cel}>{formatFixed(p.avgPrice)}</TableCell>
+              <TableCell sx={cel}>{formatFixed(p.markPrice)}</TableCell>
+              <TableCell sx={{ ...cel, color: '#f6465d' }}>{formatFixed(p.liqPrice)}</TableCell>
               <TableCell sx={{ ...cel, color: pnl >= 0 ? '#00d98b' : '#f6465d' }}>
-                {pnl >= 0 ? '+' : ''}{pnl.toFixed(4)}
+                {formatSigned(pnl, 4)}
               </TableCell>
               <TableCell sx={{ ...cel, color: pnl >= 0 ? '#00d98b' : '#f6465d' }}>
-                {p.curRealisedPnl ? parseFloat(p.curRealisedPnl).toFixed(2) : '—'}%
+                {p.curRealisedPnl ? formatFixed(p.curRealisedPnl) : '—'}%
               </TableCell>
               <TableCell sx={{ ...cel, color: '#00d98b' }}>{p.takeProfit || '—'}</TableCell>
               <TableCell sx={{ ...cel, color: '#f6465d' }}>{p.stopLoss || '—'}</TableCell>
@@ -133,7 +121,7 @@ const OpenOrdersTable = memo(function OpenOrdersTable({ rows, onCancel }) {
             <TableCell sx={{ ...cel, color: '#e5e7eb' }}>{o.symbol}</TableCell>
             <TableCell sx={cel}><SideChip side={o.side} /></TableCell>
             <TableCell sx={cel}>{o.orderType}</TableCell>
-            <TableCell sx={cel}>{parseFloat(o.price || 0).toFixed(2)}</TableCell>
+            <TableCell sx={cel}>{formatFixed(o.price)}</TableCell>
             <TableCell sx={cel}>{o.qty}</TableCell>
             <TableCell sx={cel}>{o.cumExecQty || '0'}</TableCell>
             <TableCell sx={{ ...cel, color: '#00d98b' }}>{o.takeProfit || '—'}</TableCell>
@@ -171,7 +159,7 @@ const HistoryTable = memo(function HistoryTable({ rows }) {
             <TableCell sx={{ ...cel, color: '#e5e7eb' }}>{o.symbol}</TableCell>
             <TableCell sx={cel}><SideChip side={o.side} /></TableCell>
             <TableCell sx={cel}>{o.orderType}</TableCell>
-            <TableCell sx={cel}>{parseFloat(o.avgPrice || o.price || 0).toFixed(2)}</TableCell>
+            <TableCell sx={cel}>{formatFixed(o.avgPrice || o.price)}</TableCell>
             <TableCell sx={cel}>{o.qty}</TableCell>
             <TableCell sx={cel}><StatusChip status={o.orderStatus} /></TableCell>
             <TableCell sx={{ ...cel, color: '#00d98b' }}>{o.takeProfit || '—'}</TableCell>

@@ -1,5 +1,7 @@
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
+import { WATCH_SYMBOLS } from '../constants/symbols';
+import { normalizeTicker, normalizeRestOrder } from './normalizers';
 
 export const API_KEY =
   process.env.REACT_APP_API_KEY ||
@@ -20,12 +22,6 @@ const futuresClient = axios.create({ baseURL: FUTURES_BASE_URL, timeout: 10000 }
 // recvWindow lớn để chịu được network lag, nhưng không quá 60000 (Binance limit)
 const RECV_WINDOW = 10000;
 const MAX_RETRIES = 2;
-
-const WATCH_SYMBOLS = [
-  'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT',
-  'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
-  'MATICUSDT', 'UNIUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT',
-];
 
 const intervalMap = {
   1: '1m', 3: '3m', 5: '5m', 15: '15m', 30: '30m',
@@ -218,54 +214,6 @@ function fail(error)  {
   return { retCode: d?.code || -1, retMsg: d?.msg || error?.message || 'Unknown error', result: {} };
 }
 
-function normalizeTicker(t = {}) {
-  return {
-    symbol:       t.symbol || t.s,
-    lastPrice:    t.lastPrice || t.c,
-    price24hPcnt: String((parseFloat(t.priceChangePercent ?? t.P ?? 0) || 0) / 100),
-    highPrice24h: t.highPrice || t.h,
-    lowPrice24h:  t.lowPrice  || t.l,
-    volume24h:    t.volume    || t.v,
-    turnover24h:  t.quoteVolume || t.q,
-  };
-}
-
-function normalizeSide(side) {
-  return side === 'BUY' ? 'Buy' : side === 'SELL' ? 'Sell' : side;
-}
-
-function normalizeType(type) {
-  if (!type) return type;
-  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
-    .replace(/_(.)/g, (_, c) => c.toUpperCase());
-}
-
-function normalizeStatus(status) {
-  const map = {
-    NEW: 'New', PARTIALLY_FILLED: 'PartiallyFilled', FILLED: 'Filled',
-    CANCELED: 'Cancelled', CANCELLED: 'Cancelled',
-    REJECTED: 'Rejected', EXPIRED: 'Cancelled',
-  };
-  return map[status] || status;
-}
-
-function normalizeOrder(o = {}) {
-  return {
-    symbol:      o.symbol,
-    orderId:     String(o.orderId),
-    side:        normalizeSide(o.side),
-    orderType:   normalizeType(o.type),
-    price:       o.price,
-    qty:         o.origQty,
-    cumExecQty:  o.executedQty,
-    avgPrice:    o.avgPrice,
-    orderStatus: normalizeStatus(o.status),
-    createdTime: String(o.time || o.updateTime || Date.now()),
-    takeProfit:  '',
-    stopLoss:    '',
-  };
-}
-
 export const getKline = async (symbol, interval = '15', limit = 300, category = 'spot') => {
   const client = clientFor(category);
   const path = category === 'linear' ? '/v1/klines' : '/v3/klines';
@@ -372,7 +320,7 @@ export const getOpenOrders = async (category = 'spot', symbol = '') => {
   try {
     const path = category === 'linear' ? '/v1/openOrders' : '/v3/openOrders';
     const data = await signedRequest(category, 'GET', path, symbol ? { symbol } : {});
-    return ok({ list: data.map(normalizeOrder) });
+    return ok({ list: data.map(normalizeRestOrder) });
   } catch (e) {
     return fail(e);
   }
@@ -383,7 +331,7 @@ export const getOrderHistory = async (category = 'spot', limit = 100) => {
   const rows = await Promise.all(
     WATCH_SYMBOLS.map(symbol =>
       signedRequest(category, 'GET', path, { symbol, limit: Math.min(limit, 100) })
-        .then(list => list.map(normalizeOrder))
+        .then(list => list.map(normalizeRestOrder))
         .catch(() => [])
     )
   );
@@ -433,7 +381,7 @@ export const placeOrder = async (params) => {
   const path = category === 'linear' ? '/v1/order' : '/v3/order';
   try {
     const data = await signedRequest(category, 'POST', path, payload);
-    return ok({ orderId: String(data.orderId), ...normalizeOrder(data) });
+    return ok({ orderId: String(data.orderId), ...normalizeRestOrder(data) });
   } catch (e) {
     return fail(e);
   }
@@ -442,8 +390,8 @@ export const placeOrder = async (params) => {
 export const cancelOrder = async (category, symbol, orderId) => {
   const path = category === 'linear' ? '/v1/order' : '/v3/order';
   try {
-    const data = await signedRequest(category, 'DELETE', path, { symbol, orderId: Number(orderIdn )});
-    return ok({ orderId: String(data.orderId), ...normalizeOrder(data) });
+    const data = await signedRequest(category, 'DELETE', path, { symbol, orderId: Number(orderId) });
+    return ok({ orderId: String(data.orderId), ...normalizeRestOrder(data) });
   } catch (e) {
     return fail(e);
   }

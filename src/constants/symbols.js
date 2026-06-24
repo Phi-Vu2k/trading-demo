@@ -1,0 +1,18 @@
+export const WATCH_SYMBOLS = [
+  'BTCUSDT',
+  'ETHUSDT',
+  'SOLUSDT',
+  'BNBUSDT',
+  'XRPUSDT',
+  'DOGEUSDT',
+  'ADAUSDT',
+  'AVAXUSDT',
+  'DOTUSDT',
+  'LINKUSDT',
+  'MATICUSDT',
+  'UNIUSDT',
+  'LTCUSDT',
+  'ATOMUSDT',
+  'NEARUSDT',
+];
+

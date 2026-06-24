@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useStore, selOrderbook, selSymbol, selCategory, selTicker } from '../../store';
 import { useOrderbookWS } from '../../hooks/useBinanceWS';
+import { formatAmount, formatFixed, formatInteger, formatPrice } from '../../utils/format';
 
 const Orderbook = memo(function Orderbook() {
   const symbol   = useStore(selSymbol);
@@ -59,10 +60,10 @@ const Orderbook = memo(function Orderbook() {
       {/* Spread / mid */}
       <Box sx={{ py: 0.6, px: 1.5, borderTop: '1px solid #0e0e1e', borderBottom: '1px solid #0e0e1e', bgcolor: '#0a0a18' }}>
         <Typography sx={{ fontSize: 15, fontWeight: 700, color: isUp ? '#00d98b' : '#f6465d', fontFamily: 'monospace' }}>
-          {price ? price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '—'}
+          {price ? formatPrice(price) : '—'}
           <Typography component="span" sx={{ fontSize: 9, color: '#4b5563', ml: 1 }}>
             {asks[asks.length - 1] && bids[0]
-              ? `Spread: ${(parseFloat(asks[asks.length - 1][0]) - parseFloat(bids[0][0])).toFixed(2)}`
+              ? `Spread: ${formatFixed(parseFloat(asks[asks.length - 1][0]) - parseFloat(bids[0][0]))}`
               : 'Mark'}
           </Typography>
         </Typography>
@@ -93,13 +94,13 @@ const OBRow = memo(function OBRow({ price, qty, total, pct, side }) {
     <Box sx={{ display: 'flex', px: 1.5, py: '1.5px', position: 'relative', cursor: 'pointer', '&:hover': { bgcolor: `${color}18` } }}>
       <Box sx={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${pct}%`, bgcolor: bg, pointerEvents: 'none' }} />
       <Typography sx={{ flex: 1, fontSize: 11, color, fontFamily: 'monospace' }}>
-        {parseFloat(price).toFixed(2)}
+        {formatFixed(price)}
       </Typography>
       <Typography sx={{ flex: 1, fontSize: 11, color: '#d1d5db', fontFamily: 'monospace', textAlign: 'right' }}>
-        {parseFloat(qty).toFixed(4)}
+        {formatAmount(qty, 4)}
       </Typography>
       <Typography sx={{ flex: 1, fontSize: 11, color: '#6b7280', fontFamily: 'monospace', textAlign: 'right' }}>
-        {parseInt(total).toLocaleString()}
+        {formatInteger(total)}
       </Typography>
     </Box>
   );

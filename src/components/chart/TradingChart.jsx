@@ -3,6 +3,7 @@ import { createChart, CrosshairMode } from 'lightweight-charts';
 import { Box, Button, Typography, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { useStore, selSymbol, selCategory, selTicker } from '../../store';
 import { useKlineWS } from '../../hooks/useBinanceWS';
+import { formatCompactVolume, formatFixed, formatPercent, formatPrice } from '../../utils/format';
 
 const INTERVALS = [
   { l: '1m', v: '1' }, { l: '5m', v: '5' }, { l: '15m', v: '15' },
@@ -222,17 +223,17 @@ const TradingChart = memo(function TradingChart() {
       <Box sx={{ px: 2, py: 0.8, borderBottom: '1px solid #0e0e1e', display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
         <Box>
           <Typography sx={{ fontSize: 22, fontWeight: 700, color: isUp ? '#00d98b' : '#f6465d', fontFamily: 'monospace', lineHeight: 1 }}>
-            {price ? price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '—'}
+            {price ? formatPrice(price) : '—'}
           </Typography>
           <Typography sx={{ fontSize: 11, color: isUp ? '#00d98b' : '#f6465d' }}>
-            {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
+            {isUp ? '▲' : '▼'} {formatPercent(Math.abs(change), 2, false)}
           </Typography>
         </Box>
         {ticker && [
-          { l: '24h High', v: parseFloat(ticker.highPrice24h || 0).toFixed(2), c: '#00d98b' },
-          { l: '24h Low',  v: parseFloat(ticker.lowPrice24h  || 0).toFixed(2), c: '#f6465d' },
-          { l: '24h Vol',  v: fmtVol(ticker.volume24h),                         c: '#9ca3af' },
-          { l: 'Turnover', v: fmtVol(ticker.turnover24h),                       c: '#9ca3af' },
+          { l: '24h High', v: formatFixed(ticker.highPrice24h), c: '#00d98b' },
+          { l: '24h Low',  v: formatFixed(ticker.lowPrice24h),  c: '#f6465d' },
+          { l: '24h Vol',  v: formatCompactVolume(ticker.volume24h), c: '#9ca3af' },
+          { l: 'Turnover', v: formatCompactVolume(ticker.turnover24h), c: '#9ca3af' },
         ].map(({ l, v, c }) => (
           <Box key={l}>
             <Typography sx={{ fontSize: 9, color: '#4b5563' }}>{l}</Typography>
@@ -289,15 +290,6 @@ const TradingChart = memo(function TradingChart() {
 });
 
 export default TradingChart;
-
-function fmtVol(v) {
-  if (!v) return '—';
-  const n = parseFloat(v);
-  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
-  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
-  if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
-  return n.toFixed(2);
-}
 
 function indColor(ind) {
   return { EMA9: '#f59e0b', EMA21: '#60a5fa', MA50: '#c084fc', RSI: '#a78bfa' }[ind] || '#fff';
