@@ -18,7 +18,8 @@ export default function TradePage() {
 
       {/* Center column */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden', bgcolor: '#0e0e1e' }}>
-        <Box sx={{ flex: { xs: 1, md: '0 0 62%' }, overflow: 'hidden', bgcolor: '#06060f', minHeight: { xs: 200, md: 0 } }}>
+        {/* Mobile: Chart */}
+        <Box sx={{ flex: { xs: '0 0 50%', md: '0 0 62%' }, overflow: 'hidden', bgcolor: '#06060f', minHeight: { xs: 150, md: 0 } }}>
           <TradingChart />
         </Box>
         {/* Desktop: PositionsPanel */}
@@ -27,7 +28,7 @@ export default function TradePage() {
           <PositionsPanel />
         </Box>
         {/* Mobile: Bottom tabs (Orderbook + Trade + Positions + Open + History) */}
-        <Box sx={{ display: { xs: 'block', md: 'none' }, flexShrink: 0 }}>
+        <Box sx={{ flex: { xs: '0 0 50%', md: 0 }, display: { xs: 'flex', md: 'none' }, flexDirection: 'column', minHeight: 0 }}>
           <MobileBottomPanel />
         </Box>
       </Box>

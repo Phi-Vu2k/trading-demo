@@ -10,7 +10,7 @@ const MobileBottomPanel = memo(function MobileBottomPanel() {
   const [tab, setTab] = useState(0);
 
   return (
-    <Box sx={{ bgcolor: '#06060f', borderTop: '1px solid #0e0e1e' }}>
+    <Box sx={{ bgcolor: '#06060f', borderTop: '1px solid #0e0e1e', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
       <Tabs value={tab} onChange={(_, v) => setTab(v)}
         variant="scrollable" scrollButtons={false}
         sx={{ minHeight: 32, borderBottom: '1px solid #0e0e1e',
@@ -20,7 +20,7 @@ const MobileBottomPanel = memo(function MobileBottomPanel() {
         }}>
         {TABS.map((t, i) => <Tab key={i} label={t} />)}
       </Tabs>
-      <Box sx={{ height: 180, overflow: 'auto' }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {tab === 0 && <Orderbook />}
         {tab === 1 && <OrderForm />}
         {tab >= 2 && <PositionsPanel hideTabs activeTab={tab - 2} />}

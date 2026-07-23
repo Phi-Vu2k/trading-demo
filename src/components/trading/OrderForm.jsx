@@ -132,7 +132,7 @@ const OrderForm = memo(function OrderForm() {
   }, [form, symbol, isFuture, category, setWallet, setOpenOrders, setOrderHistory, pushNotif]);
 
   return (
-    <Box sx={{ bgcolor: '#06060f', height: '100%', display: 'flex', flexDirection: 'column', p: 1.5, gap: 1, overflowY: 'auto' }}>
+    <Box sx={{ bgcolor: '#06060f', height: { xs: 'auto', md: '100%' }, display: 'flex', flexDirection: 'column', p: 1.5, gap: 1, overflowY: 'auto' }}>
       {/* Buy/Sell */}
       <Box sx={{ display: 'flex', borderRadius: 1, overflow: 'hidden', border: '1px solid #0e0e1e' }}>
         {['Buy', 'Sell'].map(s => (
